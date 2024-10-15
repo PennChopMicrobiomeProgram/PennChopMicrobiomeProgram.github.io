@@ -4,7 +4,7 @@ email: ctbushman@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
   A site for tracking software development work in the Penn-CHOP Microbiome 
   Program. Mostly for internal use, but feel free to look around.
-baseurl: "/dev" # the subpath of your site, e.g. /blog/
+baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://pennchopmicrobiomeprogram.github.io" # the base hostname & protocol for your site
 github_username:  PennChopMicrobiomeProgram
 

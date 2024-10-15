@@ -35,25 +35,23 @@ layout: default
         const repos = await PCMPresponse.json();
         const SLresponse = await fetch(`https://api.github.com/orgs/sunbeam-labs/repos`);
         repos.push(...(await SLresponse.json()));
+        console.log(repos);
 
-        // Fetch the latest commit date for each repository
-        const reposWithCommits = await Promise.all(repos.map(async repo => {
-          const commitsResponse = await fetch(repo.commits_url.replace('{/sha}', ''));
-          const commits = await commitsResponse.json();
-          repo.latestCommitDate = commits[0]?.commit?.committer?.date || '';
-          return repo;
-        }));
-
-        // Sort repositories by the latest commit date
-        reposWithCommits.sort((a, b) => new Date(b.latestCommitDate) - new Date(a.latestCommitDate));
+        // Sort repos by 'updated_at'
+        repos.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
         const ul = document.querySelector('.post-list');
-        reposWithCommits.forEach(repo => {
+        repos.forEach(repo => {
           const li = document.createElement('li');
           const a = document.createElement('a');
           a.href = repo.html_url;
           a.textContent = repo.name;
           li.appendChild(a);
+
+          const issues = document.createElement('p');
+          issues.textContent = `Open issues: ${repo.open_issues}`;
+          li.appendChild(issues);
+
           ul.appendChild(li);
         });
       }
