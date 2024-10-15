@@ -31,11 +31,28 @@ layout: default
   <ul class="post-list">
     <script>
       async function fetchRepositories() {
-        const PCMPresponse = await fetch(`https://api.github.com/orgs/PennChopMicrobiomeProgram/repos`);
-        const repos = await PCMPresponse.json();
-        const SLresponse = await fetch(`https://api.github.com/orgs/sunbeam-labs/repos`);
-        repos.push(...(await SLresponse.json()));
-        console.log(repos);
+        var now = new Date().getTime();
+        var cacheTimestamp = localStorage.getItem('reposTimestamp');
+        let repos = JSON.parse(localStorage.getItem('repos')) || [];
+
+        if (!cacheTimestamp || (now - cacheTimestamp) > 20 * 60 * 1000) { // 20 minutes in milliseconds
+          const PCMPresponse = await fetch(`https://api.github.com/orgs/PennChopMicrobiomeProgram/repos`, {
+            headers: {
+              'User-Agent': 'request'
+            }
+          });
+          const PCMPrepos = await PCMPresponse.json();
+          const SLresponse = await fetch(`https://api.github.com/orgs/sunbeam-labs/repos`, {
+            headers: {
+              'User-Agent': 'request'
+            }
+          });
+          const SLrepos = await SLresponse.json();
+          repos = [...PCMPrepos, ...SLrepos];
+
+          localStorage.setItem('repos', JSON.stringify(repos));
+          localStorage.setItem('reposTimestamp', now);
+        }
 
         // Sort repos by 'updated_at'
         repos.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
@@ -53,6 +70,42 @@ layout: default
           li.appendChild(issues);
 
           ul.appendChild(li);
+        });
+
+        const workflows = JSON.parse(localStorage.getItem('workflows')) || [];
+        cacheTimestamp = localStorage.getItem('workflowsTimestamp');
+        now = new Date().getTime();
+
+        if (!cacheTimestamp || (now - cacheTimestamp) > 20 * 60 * 1000) { // 20 minutes in milliseconds
+          for (const repo of repos) {
+            const url = `https://api.github.com/repos/${repo.full_name}/actions/workflows`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const activeWorkflows = data.workflows.filter(workflow => workflow.state === 'active' && workflow.badge_url);
+            if (activeWorkflows.length > 0) {
+              workflows.push({
+          repo: repo.name,
+          workflows: activeWorkflows
+              });
+            }
+          }
+          localStorage.setItem('workflows', JSON.stringify(workflows));
+          localStorage.setItem('workflowsTimestamp', now);
+        }
+
+        workflows.forEach(workflowData => {
+          const repoLi = document.createElement('li');
+          repoLi.textContent = `Workflows for ${workflowData.repo}:`;
+          const ul = document.createElement('ul');
+          workflowData.workflows.forEach(workflow => {
+            const li = document.createElement('li');
+            const img = document.createElement('img');
+            img.src = workflow.badge_url;
+            li.appendChild(img);
+            ul.appendChild(li);
+          });
+          repoLi.appendChild(ul);
+          document.querySelector('.post-list').appendChild(repoLi);
         });
       }
 
