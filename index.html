@@ -2,18 +2,53 @@
 layout: default
 ---
 
+<style>
+  .post-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .post-list li {
+    background: #f4f4f4;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .post-list a {
+    text-decoration: none;
+    color: #333;
+  }
+</style>
+
 <div class="home">
 
   <h1 class="page-heading">Software</h1>
 
   <ul class="post-list">
     <script>
-      async function fetchRepositories(org = 'PennChopMicrobiomeProgram') {
-        const response = await fetch(`https://api.github.com/orgs/${org}/repos`);
-        const repos = await response.json();
+      async function fetchRepositories() {
+        const PCMPresponse = await fetch(`https://api.github.com/orgs/PennChopMicrobiomeProgram/repos`);
+        const repos = await PCMPresponse.json();
+        const SLresponse = await fetch(`https://api.github.com/orgs/sunbeam-labs/repos`);
+        repos.push(...(await SLresponse.json()));
+
+        // Fetch the latest commit date for each repository
+        const reposWithCommits = await Promise.all(repos.map(async repo => {
+          const commitsResponse = await fetch(repo.commits_url.replace('{/sha}', ''));
+          const commits = await commitsResponse.json();
+          repo.latestCommitDate = commits[0]?.commit?.committer?.date || '';
+          return repo;
+        }));
+
+        // Sort repositories by the latest commit date
+        reposWithCommits.sort((a, b) => new Date(b.latestCommitDate) - new Date(a.latestCommitDate));
+
         const ul = document.querySelector('.post-list');
-        
-        repos.forEach(repo => {
+        reposWithCommits.forEach(repo => {
           const li = document.createElement('li');
           const a = document.createElement('a');
           a.href = repo.html_url;
@@ -24,7 +59,6 @@ layout: default
       }
 
       fetchRepositories();
-      fetchRepositories('sunbeam-labs');
     </script>
   </ul>
 
