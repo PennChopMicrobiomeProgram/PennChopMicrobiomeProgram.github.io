@@ -73,43 +73,80 @@ layout: default
             ul.appendChild(li);
         });
 
-        const workflows = JSON.parse(localStorage.getItem('workflows')) || [];
-        cacheTimestamp = localStorage.getItem('workflowsTimestamp');
+        // Pull each repo's readme to get the badges
+        // This gets the badges we want for each repo but it's kinda gross, gotta think more about what we actually want to display on this page
+        /*
+        //const badges = JSON.parse(localStorage.getItem('badges')) || [];
+        const badges = [];
+        cacheTimestamp = localStorage.getItem('badgesTimestamp');
         now = new Date().getTime();
 
-        if (!cacheTimestamp || (now - cacheTimestamp) > 20 * 60 * 1000) { // 20 minutes in milliseconds
+        //if (!cacheTimestamp || (now - cacheTimestamp) > 20 * 60 * 1000) { // 20 minutes in milliseconds
           for (const repo of repos) {
-            const url = `https://api.github.com/repos/${repo.full_name}/actions/workflows`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const activeWorkflows = data.workflows.filter(workflow => workflow.state === 'active' && workflow.badge_url);
-            if (activeWorkflows.length > 0) {
-              workflows.push({
-                repo: repo.name,
-                workflows: activeWorkflows
+            fetch('https://raw.githubusercontent.com/${repo.full_name}/main/README.md', { mode: 'cors' })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.json();
+            })
+            .then(data => {
+              const badgeRegex = /!\[.*?\]\((https:\/\/img\.shields\.io.*?|.*\/badge.*?|.*\/actions\/workflows\/.*?\/badge\.svg.*?)\)/g;
+              const matches = [...data.matchAll(badgeRegex)];
+              if (matches.length > 0) {
+                badges.push({
+                  repo: repo.name,
+                  badges: matches.map(match => match[1].split(')')[0]) // Extract only the first link from each badge
+                });
+              }
+            })
+            .catch(error => {
+              fetch('https://raw.githubusercontent.com/${repo.full_name}/master/README.md', { mode: 'cors' })
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+                return response.json();
+              })
+              .then(data => {
+                const badgeRegex = /!\[.*?\]\((https:\/\/img\.shields\.io.*?|.*\/badge.*?|.*\/actions\/workflows\/.*?\/badge\.svg.*?)\)/g;
+                const matches = [...data.matchAll(badgeRegex)];
+                if (matches.length > 0) {
+                  badges.push({
+                    repo: repo.name,
+                    badges: matches.map(match => match[1].split(')')[0]) // Extract only the first link from each badge
+                  });
+                }
+              })
+              .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
               });
-            }
+            });
           }
-          localStorage.setItem('workflows', JSON.stringify(workflows));
-          localStorage.setItem('workflowsTimestamp', now);
-        }
 
-        workflows.forEach(workflowData => {
-          const repoLi = document.getElementById(workflowData.repo);
+          localStorage.setItem('badges', JSON.stringify(badges));
+          localStorage.setItem('badgesTimestamp', now);
+        //}
+
+        console.log(badges);
+
+        badges.forEach(badgeData => {
+          const repoLi = document.getElementById(badgeData.repo);
           if (repoLi) {
             const div = document.createElement('div');
             div.style.display = 'flex';
-            div.style.flexWrap = 'wrap'; // Add flex-wrap to allow wrapping
-            workflowData.workflows.forEach(workflow => {
+            div.style.flexWrap = 'wrap';
+            badgeData.badges.forEach(badge => {
               const img = document.createElement('img');
-              img.src = workflow.badge_url;
-              img.style.marginRight = '10px'; // Optional: Add some spacing between images
-              img.style.marginBottom = '10px'; // Optional: Add some spacing between rows
+              img.src = badge;
+              img.style.marginRight = '10px';
+              img.style.marginBottom = '10px';
               div.appendChild(img);
             });
             repoLi.appendChild(div);
           }
         });
+        */
       }
 
       fetchRepositories();
